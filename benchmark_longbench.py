@@ -1,5 +1,5 @@
 """
-Saber Prefill Server - Universal LongBench
+Sparc Prefill Server - Universal LongBench
 Targets: Global Context Synthesis, Attention Density Retention, and Disaggregated Transmission.
 Features: Universal Prompt Routing, On-the-fly TPOT/TTFT Systems Profiling, Fail-Fast Crash Handling,
           and Anti-Degeneration (Repetition Penalty).
@@ -19,8 +19,8 @@ import re
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from rouge_score import rouge_scorer
 
-# Import the Saber Engine
-from saber_core_transport import SaberDisaggregatedEngine
+# Import the Sparc Engine
+from sparc_core_transport import SparcDisaggregatedEngine
 
 # 🟢 GLOBAL CONFIGURATION
 MODEL_PATH = "../local_models/Qwen3-8B" 
@@ -101,7 +101,7 @@ def evaluate_rouge(prediction, expected_answers):
 
 def run_longbench(ip, port, retain_ratio, batch_size, max_new_tokens, num_samples, dataset_path):
     task_name = os.path.basename(dataset_path).replace('.jsonl', '')
-    checkpoint_file = f"saber_longbench_r{retain_ratio}_{task_name}.jsonl"
+    checkpoint_file = f"sparc_longbench_r{retain_ratio}_{task_name}.jsonl"
 
     print(f"🚀 Loading Model on Dual-GPU Prefill Server (LONGBENCH {task_name.upper()})...")
     print(f"⚙️ Configuration: [Retain Ratio: {retain_ratio:.2f}] | [Max Context: {MAX_SEQ_LEN}]")
@@ -117,7 +117,7 @@ def run_longbench(ip, port, retain_ratio, batch_size, max_new_tokens, num_sample
     for i, layer in enumerate(model.model.layers):
         NATIVE_FORWARDS[i] = layer.self_attn.forward
     
-    engine = SaberDisaggregatedEngine(model, retain_ratio, causal_depth=3)
+    engine = SparcDisaggregatedEngine(model, retain_ratio, causal_depth=3)
     context = zmq.Context()
     socket = reset_zmq_socket(context, None, ip, port)
 
@@ -133,7 +133,7 @@ def run_longbench(ip, port, retain_ratio, batch_size, max_new_tokens, num_sample
     with torch.no_grad(): _ = model(input_ids=dummy_ids, attention_mask=dummy_ids)
     purge(model)
 
-    methods = ["Native-Baseline", "Uniform-INT4", "ablation_inverted", "Saber-BIC", "SnapKV"]
+    methods = ["Native-Baseline", "Uniform-INT4", "ablation_inverted", "Sparc-BIC", "SnapKV"]
     
     metrics = {m: {
         "total": 0, "rougeL": [], 

@@ -1,5 +1,5 @@
 """
-Saber Prefill Server - RULER Benchmark (Needle In A Haystack)
+Sparc Prefill Server - RULER Benchmark (Needle In A Haystack)
 Targets: Extreme Context Retrieval & Entropy Routing Validation.
 """
 import torch
@@ -15,8 +15,8 @@ import sys
 import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# Import the Saber Engine
-from saber_core_transport import SaberDisaggregatedEngine
+# Import the Sparc Engine
+from sparc_core_transport import SparcDisaggregatedEngine
 
 # 🟢 GLOBAL CONFIGURATION
 MODEL_PATH = "../local_models/Qwen3-4B-Instruct-2507"
@@ -67,7 +67,7 @@ def evaluate_ruler(prediction, expected_answers):
     return 0.0
 
 def run_ruler(ip, port, retain_ratio, batch_size, max_new_tokens, num_samples, dataset_path):
-    checkpoint_file = f"saber_checkpoint_r{retain_ratio}_ruler.jsonl"
+    checkpoint_file = f"sparc_checkpoint_r{retain_ratio}_ruler.jsonl"
 
     print(f"🚀 Loading Model on Dual-GPU Prefill Server (RULER Mode)...")
     print(f"⚙️ Configuration: [Retain Ratio: {retain_ratio:.2f}] | [Max Context: {MAX_SEQ_LEN}]")
@@ -83,7 +83,7 @@ def run_ruler(ip, port, retain_ratio, batch_size, max_new_tokens, num_samples, d
     for i, layer in enumerate(model.model.layers):
         NATIVE_FORWARDS[i] = layer.self_attn.forward
     
-    engine = SaberDisaggregatedEngine(model, retain_ratio, causal_depth=3)
+    engine = SparcDisaggregatedEngine(model, retain_ratio, causal_depth=3)
     context = zmq.Context()
     socket = reset_zmq_socket(context, None, ip, port)
 
@@ -99,7 +99,7 @@ def run_ruler(ip, port, retain_ratio, batch_size, max_new_tokens, num_samples, d
     with torch.no_grad(): _ = model(input_ids=dummy_ids, attention_mask=dummy_ids)
     purge(model)
 
-    methods = ["Native-Baseline", "Uniform-INT4", "Saber-Q", "Saber-CQ"]
+    methods = ["Native-Baseline", "Uniform-INT4", "Sparc-Q", "Sparc-CQ"]
     metrics = {m: {"total": 0, "em": []} for m in methods}
     
     processed_ids = set()

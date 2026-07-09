@@ -1,5 +1,5 @@
 """
-Saber Prefill Server (Master) - LEval Benchmark
+Sparc Prefill Server (Master) - LEval Benchmark
 Features: Dual-GPU Extended Context, Uniform-INT4 Baseline, Dynamic Prompt Routing.
 Updates: Parametric logging, unique output names, Deterministic Crash Recovery, and MCQ Formatting.
 """
@@ -15,7 +15,7 @@ import hashlib
 import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from saber_core_transport import SaberDisaggregatedEngine
+from sparc_core_transport import SparcDisaggregatedEngine
 
 # 🟢 GLOBAL CONFIGURATION
 MODEL_PATH = "../local_models/Qwen3-4B-Instruct-2507"
@@ -102,10 +102,10 @@ def run_leval_benchmark(ip, port, retain_ratio, batch_size, max_new_tokens, num_
     leval_full_path = os.path.join("../data/benchmarks/LEval", dataset_path)
     
     # Encode the retain_ratio directly into the filename to prevent collision during sweeps
-    checkpoint_file = f"saber_checkpoint_r{retain_ratio}_{dataset_path.split('/')[-1]}"
+    checkpoint_file = f"sparc_checkpoint_r{retain_ratio}_{dataset_path.split('/')[-1]}"
 
     print(f"🚀 Loading Qwen-4B on Dual-GPU Prefill Server...")
-    print(f"⚙️ Configuration: [Saber Retain Ratio: {retain_ratio:.2f}] | [Max Context: {MAX_SEQ_LEN} tokens]")
+    print(f"⚙️ Configuration: [Sparc Retain Ratio: {retain_ratio:.2f}] | [Max Context: {MAX_SEQ_LEN} tokens]")
     
     tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
     model = AutoModelForCausalLM.from_pretrained(
@@ -118,7 +118,7 @@ def run_leval_benchmark(ip, port, retain_ratio, batch_size, max_new_tokens, num_
     for i, layer in enumerate(model.model.layers):
         NATIVE_FORWARDS[i] = layer.self_attn.forward
     
-    engine = SaberDisaggregatedEngine(model, retain_ratio, causal_depth=3)
+    engine = SparcDisaggregatedEngine(model, retain_ratio, causal_depth=3)
     
     context = zmq.Context()
     socket = reset_zmq_socket(context, None, ip, port)
@@ -139,7 +139,7 @@ def run_leval_benchmark(ip, port, retain_ratio, batch_size, max_new_tokens, num_
     with torch.no_grad(): _ = model(input_ids=dummy_ids, attention_mask=dummy_ids)
     purge(model)
 
-    methods = ["Native-Baseline", "Uniform-INT4", "ablation_inverted", "Saber-BIC", "SnapKV"]
+    methods = ["Native-Baseline", "Uniform-INT4", "ablation_inverted", "Sparc-BIC", "SnapKV"]
     metrics = {m: {"total": 0, "prefill": [], "payload": [], "ttft": [], "tpot": []} for m in methods}
     
     processed_ids = set()
@@ -162,7 +162,7 @@ def run_leval_benchmark(ip, port, retain_ratio, batch_size, max_new_tokens, num_
                 for method, data in record["results"].items():
                     if data["success"]:
                         metrics[method]["total"] += 1
-                        metrics[method]["prefill"].append(data["prefill_time"] + data.get("saber_time", 0))
+                        metrics[method]["prefill"].append(data["prefill_time"] + data.get("sparc_time", 0))
                         metrics[method]["payload"].append(data["payload_mb"])
                         metrics[method]["ttft"].append(data["ttft"])
                         if data["tpot"] > 0: metrics[method]["tpot"].append(data["tpot"])
@@ -225,7 +225,7 @@ def run_leval_benchmark(ip, port, retain_ratio, batch_size, max_new_tokens, num_
                 try:
                     payload_mb = 0.0
                     prefill_time = 0.0
-                    saber_time = 0.0
+                    sparc_time = 0.0
                     
                     envelope = pickle.dumps({"method": method, "input_ids": input_ids[:, -1:].cpu(), "max_new_tokens": max_new_tokens})
                     socket.send(envelope)
@@ -239,9 +239,9 @@ def run_leval_benchmark(ip, port, retain_ratio, batch_size, max_new_tokens, num_
                     for chunk in generator:
                         if chunk["type"] == "metadata" and "stats" in chunk:
                             prefill_time = chunk["stats"]["prefill_time_ms"]
-                            saber_time += chunk["stats"].get("routing_time_ms", 0.0)
+                            sparc_time += chunk["stats"].get("routing_time_ms", 0.0)
                         if chunk["type"] == "done" and "quant_time_ms" in chunk:
-                            saber_time += chunk["quant_time_ms"]
+                            sparc_time += chunk["quant_time_ms"]
                             
                         chunk_bytes = pickle.dumps(chunk)
                         payload_mb += len(chunk_bytes) / 1024 / 1024
@@ -261,7 +261,7 @@ def run_leval_benchmark(ip, port, retain_ratio, batch_size, max_new_tokens, num_
                         generated_text = reply.get('text', '')
                         
                         metrics[method]["total"] += 1
-                        metrics[method]["prefill"].append(prefill_time + saber_time)
+                        metrics[method]["prefill"].append(prefill_time + sparc_time)
                         metrics[method]["payload"].append(payload_mb)
                         metrics[method]["ttft"].append(ttft)
                         if tpot > 0: metrics[method]["tpot"].append(tpot)
@@ -269,7 +269,7 @@ def run_leval_benchmark(ip, port, retain_ratio, batch_size, max_new_tokens, num_
                         record["results"][method] = {
                             "success": True,
                             "prefill_time": prefill_time,
-                            "saber_time": saber_time,
+                            "sparc_time": sparc_time,
                             "payload_mb": payload_mb,
                             "ttft": ttft,
                             "tpot": tpot,

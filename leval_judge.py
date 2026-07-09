@@ -1,5 +1,5 @@
 """
-Saber LEval Evaluation Engine (Ollama Edition)
+Sparc LEval Evaluation Engine (Ollama Edition)
 Features: Context-Aware Fair Grading, Metric-Driven Routing, Aggressive MCQ Fast-Path, 
           Multi-Threaded Concurrency, Crash Recovery, and Granular Execution Flags.
 Updates: Integrated Granular 0-10 Spectrum Rubrics to resolve discrete scale paralysis.
@@ -220,8 +220,8 @@ def run_bulk_judge(args):
         if os.path.exists("judge_debug.log"): 
             os.remove("judge_debug.log")
  
-    #all_methods = ["Native-Baseline", "Uniform-INT4", "Saber-BIC", "SnapKV"]
-    all_methods = ["Native-Baseline", "Uniform-INT4", "ablation_inverted", "Saber-BIC", "SnapKV"]
+    #all_methods = ["Native-Baseline", "Uniform-INT4", "Sparc-BIC", "SnapKV"]
+    all_methods = ["Native-Baseline", "Uniform-INT4", "ablation_inverted", "Sparc-BIC", "SnapKV"]
     methods = [args.method] if args.method else all_methods
     
     executor = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_WORKERS)
@@ -327,12 +327,12 @@ def run_bulk_judge(args):
         executor.shutdown(wait=False, cancel_futures=True)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Saber LEval Evaluation Judgement Engine")
+    parser = argparse.ArgumentParser(description="Sparc LEval Evaluation Judgement Engine")
     parser.add_argument(
         '--file_path', 
         nargs='+', 
         required=True, 
-        help="Path(s) to the specific saber checkpoint file(s) to evaluate."
+        help="Path(s) to the specific sparc checkpoint file(s) to evaluate."
     )
     parser.add_argument(
         '--debug', 
@@ -349,8 +349,8 @@ if __name__ == "__main__":
         '--method', 
         type=str, 
         default=None, 
-        #choices=["Native-Baseline", "Uniform-INT4", "Saber-BIC", "SnapKV"],
-        choices=["Native-Baseline", "Uniform-INT4", "ablation_inverted", "Saber-BIC", "SnapKV"],
+        #choices=["Native-Baseline", "Uniform-INT4", "Sparc-BIC", "SnapKV"],
+        choices=["Native-Baseline", "Uniform-INT4", "ablation_inverted", "Sparc-BIC", "SnapKV"],
         help="Grade a single compression track."
     )
     args = parser.parse_args()

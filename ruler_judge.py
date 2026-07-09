@@ -1,5 +1,5 @@
 """
-Saber Universal Evaluation Engine (RULER Edition)
+Sparc Universal Evaluation Engine (RULER Edition)
 Filename: ruler_judge.py
 Features: Hybrid Routing (Exact Match for NIAH, LLM for QA), Threaded Concurrency, Checkpointing.
 """
@@ -194,7 +194,7 @@ def run_bulk_judge(args):
         print("🐞 Debug mode ON. Detailed LLM traces will be saved to 'ruler_judge_debug.log'.")
         if os.path.exists("ruler_judge_debug.log"): os.remove("ruler_judge_debug.log")
  
-    methods = ["Native-Baseline", "Uniform-INT4", "ablation_inverted", "Saber-BIC", "SnapKV"]
+    methods = ["Native-Baseline", "Uniform-INT4", "ablation_inverted", "Sparc-BIC", "SnapKV"]
     executor = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_WORKERS)
     
     try:
@@ -286,7 +286,7 @@ def run_bulk_judge(args):
         executor.shutdown(wait=False, cancel_futures=True)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Saber RULER Evaluation Engine")
+    parser = argparse.ArgumentParser(description="Sparc RULER Evaluation Engine")
     parser.add_argument(
         '--file_path', 
         nargs='+', 

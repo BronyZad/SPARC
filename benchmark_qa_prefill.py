@@ -1,8 +1,8 @@
 """
-Saber Prefill Server - General QA Retrieval (Ultimate Deadlock-Proof Edition)
+Sparc Prefill Server - General QA Retrieval (Ultimate Deadlock-Proof Edition)
 Features: 
 - Dynamic Monkey Patch for Head-Step OOM prevention 
-- Saber-BIC INT4 payload with CUDA Spinlock Protection
+- Sparc-BIC INT4 payload with CUDA Spinlock Protection
 - SnapKV Empty Shape Bug Fixed
 - Extreme 10-Min Timeout for Swapping
 - Print Flush enforced to bypass buffer freezing
@@ -22,12 +22,12 @@ import re
 import string
 import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from saber_core_transport import SaberDisaggregatedEngine
+from sparc_core_transport import SparcDisaggregatedEngine
 
 # ==============================================================================
 # 🟢 终极魔法注入 (Monkey Patching 2.0 + Chunked Prefill + Mask Fix)
 # ==============================================================================
-def patched_prefill_and_stream(self, input_ids, method="saber_bic", chunk_size=8196):
+def patched_prefill_and_stream(self, input_ids, method="sparc_bic", chunk_size=8196):
     seq_len = input_ids.shape[1]
     num_layers_total = len(self.model.model.layers)
     target_telemetry_budget = int(seq_len * self.retain_ratio * num_layers_total)
@@ -145,7 +145,7 @@ def patched_prefill_and_stream(self, input_ids, method="saber_bic", chunk_size=8
             total_iso_budget = int(seq_len * iso_ratio * num_layers)
             layer_budgets = torch.full((num_layers,), total_iso_budget // num_layers, dtype=torch.long, device=global_device)
             target_telemetry_budget = total_iso_budget
-        elif method in ["saber_bic", "saber_cf", "ablation_inverted"]:
+        elif method in ["sparc_bic", "sparc_cf", "ablation_inverted"]:
             layer_budgets = torch.full((num_layers,), total_global_budget // num_layers, dtype=torch.long, device=global_device)
             target_telemetry_budget = total_global_budget
 
@@ -192,7 +192,7 @@ def patched_prefill_and_stream(self, input_ids, method="saber_bic", chunk_size=8
             mask[-local_len:] = True
             
             if heavy_hitter_budget > 0:
-                if method in ["saber_bic", "saber_cf", "ablation_inverted"]:
+                if method in ["sparc_bic", "sparc_cf", "ablation_inverted"]:
                     k_outlier = k.abs().max(dim=-1)[0].amax(dim=(0, 1)).to(compute_device)
                     v_outlier = v.abs().max(dim=-1)[0].amax(dim=(0, 1)).to(compute_device)
                     outlier_score = k_outlier + v_outlier
@@ -271,7 +271,7 @@ def patched_prefill_and_stream(self, input_ids, method="saber_bic", chunk_size=8
                 k_bg_bytes, kb_scale, kb_shape = self._gpu_pack_to_int4(k_bg)
                 v_bg_bytes, vb_scale, vb_shape = self._gpu_pack_to_int4(v_bg)
                 
-            elif method == "saber_cf":
+            elif method == "sparc_cf":
                 batch_sz, heads, seq_bg, head_dim = k_bg.shape
                 num_outliers = max(1, head_dim // 32)
                 channel_max = k_bg.abs().amax(dim=(0, 2))
@@ -284,7 +284,7 @@ def patched_prefill_and_stream(self, input_ids, method="saber_bic", chunk_size=8
                 core_idx_exp = core_indices.unsqueeze(0).unsqueeze(2).expand(batch_sz, heads, seq_bg, head_dim - num_outliers)
                 k_bg_core = torch.gather(k_bg, dim=3, index=core_idx_exp)
                 k_bg_bytes, kb_scale, kb_shape = self._gpu_pack_to_int4(k_bg_core)
-                k_quant_type = 'saber_cf'
+                k_quant_type = 'sparc_cf'
                 payload_extras['k_bg_outliers_bf16'] = k_bg_outliers.cpu()
                 payload_extras['k_outlier_indices'] = outlier_indices.cpu()
                 payload_extras['k_core_indices'] = core_indices.cpu()
@@ -294,7 +294,7 @@ def patched_prefill_and_stream(self, input_ids, method="saber_bic", chunk_size=8
                 k_bg_bytes, kb_scale, kb_shape = self._gpu_pack_to_int4(k_bg)
                 v_bg_bytes, vb_scale, vb_shape = self._gpu_pack_to_int4(v_bg)
 
-            else: # Saber-BIC
+            else: # Sparc-BIC
                 # 如果这个非规则形状 k_bg 让算子崩溃了，下面的 synchronize() 会立刻报错！
                 k_bg_bytes, kb_scale, kb_shape = self._gpu_pack_to_int4(k_bg)
                 v_bg_bytes, vb_scale, vb_shape = self._gpu_pack_to_int4(v_bg)
@@ -323,7 +323,7 @@ def patched_prefill_and_stream(self, input_ids, method="saber_bic", chunk_size=8
         if 'payload_extras' in locals(): del payload_extras
         torch.cuda.empty_cache()
         
-    if method in ["saber_bic", "saber_cf", "ablation_inverted", "uniform_int4"] and seq_len >= 512:
+    if method in ["sparc_bic", "sparc_cf", "ablation_inverted", "uniform_int4"] and seq_len >= 512:
         num_layers = len(layers)
         chunk_256_tokens = 256 * num_layers
         middle_tokens = (seq_len - 512) * num_layers
@@ -345,11 +345,11 @@ def patched_prefill_and_stream(self, input_ids, method="saber_bic", chunk_size=8
     return
 
 # 强行注入救命补丁
-SaberDisaggregatedEngine.prefill_and_stream = patched_prefill_and_stream
+SparcDisaggregatedEngine.prefill_and_stream = patched_prefill_and_stream
 # ==============================================================================
 
 # 🟢 GLOBAL CONFIGURATION
-MODEL_PATH = "/home/yuan/saber/local_models/Qwen3-4B-Instruct-2507" 
+MODEL_PATH = "/home/yuan/sparc/local_models/Qwen3-4B-Instruct-2507" 
 MAX_SEQ_LEN = 80000  
 
 NATIVE_FORWARDS = {}
@@ -423,7 +423,7 @@ def evaluate_qa(prediction, ground_truths):
 def run_qa(ip, port, retain_ratio, batch_size, max_new_tokens, num_samples, dataset_path, top_k_docs):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     dataset_basename = os.path.splitext(os.path.basename(dataset_path))[0]
-    checkpoint_file = os.path.join(script_dir, f"saber_checkpoint_{dataset_basename}_r{retain_ratio}.jsonl")
+    checkpoint_file = os.path.join(script_dir, f"sparc_checkpoint_{dataset_basename}_r{retain_ratio}.jsonl")
 
     print(f"🚀 Loading Model for Long-Context QA...", flush=True)
     print(f"⚙️ Configuration: [Dataset: {dataset_basename}] | [Retain Ratio: {retain_ratio:.2f}] | [Top-K Docs: {top_k_docs}]", flush=True)
@@ -437,7 +437,7 @@ def run_qa(ip, port, retain_ratio, batch_size, max_new_tokens, num_samples, data
     for i, layer in enumerate(model.model.layers):
         NATIVE_FORWARDS[i] = layer.self_attn.forward
     
-    engine = SaberDisaggregatedEngine(model, retain_ratio, causal_depth=3)
+    engine = SparcDisaggregatedEngine(model, retain_ratio, causal_depth=3)
     context = zmq.Context()
     socket = reset_zmq_socket(context, None, ip, port)
 
@@ -455,7 +455,7 @@ def run_qa(ip, port, retain_ratio, batch_size, max_new_tokens, num_samples, data
     with torch.no_grad(): _ = model(input_ids=dummy_ids, attention_mask=dummy_ids)
     purge(model)
 
-    methods = ["Native-Baseline", "Uniform-INT4", "Saber-BIC", "SnapKV"]
+    methods = ["Native-Baseline", "Uniform-INT4", "Sparc-BIC", "SnapKV"]
     metrics = {m: {"total": 0, "em": [], "contains": [], "payload": [], "ttft": []} for m in methods}
     processed_ids = set()
 

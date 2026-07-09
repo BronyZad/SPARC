@@ -7,7 +7,7 @@ df_lb = pd.read_csv("Final_LongBench.csv")
 df_le = pd.read_csv("Final_LEval.csv")
 df_ru = pd.read_csv("Final_RULER.csv")
 
-methods = ["Native-Baseline", "Uniform-INT4", "Saber-BIC", "SnapKV"]
+methods = ["Native-Baseline", "Uniform-INT4", "Sparc-BIC", "SnapKV"]
 
 # 计算每个 Benchmark 的平均分
 avg_data = []
