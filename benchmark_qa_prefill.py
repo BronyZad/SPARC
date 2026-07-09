@@ -1,8 +1,8 @@
 """
-Saber Prefill Server - General QA Retrieval (Ultimate Deadlock-Proof Edition)
+Sparc Prefill Server - General QA Retrieval (Ultimate Deadlock-Proof Edition)
 Features: 
 - Dynamic Monkey Patch for Head-Step OOM prevention 
-- Saber-BIC INT4 payload with CUDA Spinlock Protection
+- Sparc-BIC INT4 payload with CUDA Spinlock Protection
 - SnapKV Empty Shape Bug Fixed
 - Extreme 10-Min Timeout for Swapping
 - Print Flush enforced to bypass buffer freezing
@@ -22,7 +22,7 @@ import re
 import string
 import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from sparc_core_transport import SaberDisaggregatedEngine
+from sparc_core_transport import SparcDisaggregatedEngine
 
 # ==============================================================================
 # 🟢 终极魔法注入 (Monkey Patching 2.0 + Chunked Prefill + Mask Fix)
@@ -294,7 +294,7 @@ def patched_prefill_and_stream(self, input_ids, method="sparc_bic", chunk_size=8
                 k_bg_bytes, kb_scale, kb_shape = self._gpu_pack_to_int4(k_bg)
                 v_bg_bytes, vb_scale, vb_shape = self._gpu_pack_to_int4(v_bg)
 
-            else: # Saber-BIC
+            else: # Sparc-BIC
                 # 如果这个非规则形状 k_bg 让算子崩溃了，下面的 synchronize() 会立刻报错！
                 k_bg_bytes, kb_scale, kb_shape = self._gpu_pack_to_int4(k_bg)
                 v_bg_bytes, vb_scale, vb_shape = self._gpu_pack_to_int4(v_bg)
@@ -345,7 +345,7 @@ def patched_prefill_and_stream(self, input_ids, method="sparc_bic", chunk_size=8
     return
 
 # 强行注入救命补丁
-SaberDisaggregatedEngine.prefill_and_stream = patched_prefill_and_stream
+SparcDisaggregatedEngine.prefill_and_stream = patched_prefill_and_stream
 # ==============================================================================
 
 # 🟢 GLOBAL CONFIGURATION
@@ -437,7 +437,7 @@ def run_qa(ip, port, retain_ratio, batch_size, max_new_tokens, num_samples, data
     for i, layer in enumerate(model.model.layers):
         NATIVE_FORWARDS[i] = layer.self_attn.forward
     
-    engine = SaberDisaggregatedEngine(model, retain_ratio, causal_depth=3)
+    engine = SparcDisaggregatedEngine(model, retain_ratio, causal_depth=3)
     context = zmq.Context()
     socket = reset_zmq_socket(context, None, ip, port)
 
@@ -455,7 +455,7 @@ def run_qa(ip, port, retain_ratio, batch_size, max_new_tokens, num_samples, data
     with torch.no_grad(): _ = model(input_ids=dummy_ids, attention_mask=dummy_ids)
     purge(model)
 
-    methods = ["Native-Baseline", "Uniform-INT4", "Saber-BIC", "SnapKV"]
+    methods = ["Native-Baseline", "Uniform-INT4", "Sparc-BIC", "SnapKV"]
     metrics = {m: {"total": 0, "em": [], "contains": [], "payload": [], "ttft": []} for m in methods}
     processed_ids = set()
 
