@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from transformers import AutoModelForCausalLM, AutoTokenizer, LogitsProcessor, LogitsProcessorList
 from transformers.cache_utils import DynamicCache
 
-from saber_core_transport import SparcDisaggregatedEngine
+from sparc_core_transport import SparcDisaggregatedEngine
 
 MODEL_PATH = "../local_models/Qwen2.5-Coder-7B-Instruct"
 PORT = "5555"

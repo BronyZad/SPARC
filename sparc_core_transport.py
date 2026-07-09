@@ -101,7 +101,7 @@ class SparcDisaggregatedEngine:
                     k_bg = SparcDisaggregatedEngine._gpu_unpack_from_int4(
                         payload['k_bg_bytes'], payload['kb_scale'], payload['kb_shape'], device)
                         
-                elif k_quant_type == 'saber_cf':
+                elif k_quant_type == 'sparc_cf':
                     k_bg_core = SparcDisaggregatedEngine._gpu_unpack_from_int4(
                         payload['k_bg_bytes'], payload['kb_scale'], payload['kb_shape'], device)
                     
@@ -138,7 +138,7 @@ class SparcDisaggregatedEngine:
     # =========================================================================
     # PREFILL & ROUTING HOOK
     # =========================================================================
-    def prefill_and_stream(self, input_ids, method="saber_bic"):
+    def prefill_and_stream(self, input_ids, method="sparc_bic"):
         seq_len = input_ids.shape[1]
         num_layers_total = len(self.model.model.layers)
         
@@ -259,7 +259,7 @@ class SparcDisaggregatedEngine:
                 total_iso_budget = int(seq_len * iso_ratio * num_layers)
                 layer_budgets = torch.full((num_layers,), total_iso_budget // num_layers, dtype=torch.long, device=global_device)
                 target_telemetry_budget = total_iso_budget
-            elif method in ["saber_bic", "saber_cf", "ablation_inverted"]:
+            elif method in ["sparc_bic", "sparc_cf", "ablation_inverted"]:
                 layer_budgets = torch.full((num_layers,), total_global_budget // num_layers, dtype=torch.long, device=global_device)
                 target_telemetry_budget = total_global_budget
 
@@ -317,7 +317,7 @@ class SparcDisaggregatedEngine:
                 mask[-local_len:] = True
                 
                 if heavy_hitter_budget > 0:
-                    if method in ["saber_bic", "saber_cf", "ablation_inverted"]:
+                    if method in ["sparc_bic", "sparc_cf", "ablation_inverted"]:
                         k_outlier = k.abs().max(dim=-1)[0].amax(dim=(0, 1)).to(compute_device)
                         v_outlier = v.abs().max(dim=-1)[0].amax(dim=(0, 1)).to(compute_device)
                         outlier_score = k_outlier + v_outlier
@@ -396,7 +396,7 @@ class SparcDisaggregatedEngine:
                     k_quant_type = 'int4'
                     v_bg_bytes, vb_scale, vb_shape = self._gpu_pack_to_int4(v_bg)
                     
-                elif method == "saber_cf":
+                elif method == "sparc_cf":
                     batch_sz, heads, seq_bg, head_dim = k_bg.shape
                     num_outliers = max(1, head_dim // 32)
                     
@@ -414,7 +414,7 @@ class SparcDisaggregatedEngine:
                     k_bg_core = torch.gather(k_bg, dim=3, index=core_idx_exp)
                     
                     k_bg_bytes, kb_scale, kb_shape = self._gpu_pack_to_int4(k_bg_core)
-                    k_quant_type = 'saber_cf'
+                    k_quant_type = 'sparc_cf'
                     
                     payload_extras['k_bg_outliers_bf16'] = k_bg_outliers.cpu()
                     payload_extras['k_outlier_indices'] = outlier_indices.cpu()
@@ -455,7 +455,7 @@ class SparcDisaggregatedEngine:
             if 'payload_extras' in locals(): del payload_extras
             torch.cuda.empty_cache()
             
-        if method in ["saber_bic", "saber_cf", "ablation_inverted", "uniform_int4"] and seq_len >= 512:
+        if method in ["sparc_bic", "sparc_cf", "ablation_inverted", "uniform_int4"] and seq_len >= 512:
             num_layers = len(layers)
             chunk_256_tokens = 256 * num_layers
             middle_tokens = (seq_len - 512) * num_layers

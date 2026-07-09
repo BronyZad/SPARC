@@ -20,7 +20,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from rouge_score import rouge_scorer
 
 # Import the Sparc Engine
-from saber_core_transport import SparcDisaggregatedEngine
+from sparc_core_transport import SparcDisaggregatedEngine
 
 # 🟢 GLOBAL CONFIGURATION
 MODEL_PATH = "../local_models/Qwen3-8B" 
@@ -101,7 +101,7 @@ def evaluate_rouge(prediction, expected_answers):
 
 def run_longbench(ip, port, retain_ratio, batch_size, max_new_tokens, num_samples, dataset_path):
     task_name = os.path.basename(dataset_path).replace('.jsonl', '')
-    checkpoint_file = f"saber_longbench_r{retain_ratio}_{task_name}.jsonl"
+    checkpoint_file = f"sparc_longbench_r{retain_ratio}_{task_name}.jsonl"
 
     print(f"🚀 Loading Model on Dual-GPU Prefill Server (LONGBENCH {task_name.upper()})...")
     print(f"⚙️ Configuration: [Retain Ratio: {retain_ratio:.2f}] | [Max Context: {MAX_SEQ_LEN}]")

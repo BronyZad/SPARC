@@ -15,11 +15,11 @@ import re
 import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from saber_core_transport import SparcDisaggregatedEngine
+from sparc_core_transport import SparcDisaggregatedEngine
 
 MODEL_PATH = "../local_models/Qwen3-4B-Instruct-2507"
 GSM8K_PATH = "../data/benchmarks/gsm8k/test.jsonl"
-CHECKPOINT_FILE = "saber_benchmark_checkpoint.jsonl"
+CHECKPOINT_FILE = "sparc_benchmark_checkpoint.jsonl"
 
 def extract_answer(text: str) -> str:
     if "####" in text:
@@ -100,7 +100,7 @@ def run_benchmark(ip, port, batch_size, seq_len, max_new_tokens, num_samples):
     # 🟢 ADDED UNIFORM-INT4 BASELINE
     methods = ["Native-Baseline", "Uniform-INT4", "Sparc-Q", "Sparc-CQ"]
     
-    metrics = {m: {"correct": 0, "total": 0, "prefill": [], "saber": [], "payload": [], "ttft": [], "tpot": []} for m in methods}
+    metrics = {m: {"correct": 0, "total": 0, "prefill": [], "sparc": [], "payload": [], "ttft": [], "tpot": []} for m in methods}
     processed_questions = set()
 
     if os.path.exists(CHECKPOINT_FILE):
@@ -116,7 +116,7 @@ def run_benchmark(ip, port, batch_size, seq_len, max_new_tokens, num_samples):
                         metrics[method]["total"] += 1
                         if data["is_correct"]: metrics[method]["correct"] += 1
                         metrics[method]["prefill"].append(data["prefill_time"])
-                        metrics[method]["saber"].append(data["saber_time"])
+                        metrics[method]["sparc"].append(data["sparc_time"])
                         metrics[method]["payload"].append(data["payload_mb"])
                         metrics[method]["ttft"].append(data["ttft"])
                         if data["tpot"] > 0: metrics[method]["tpot"].append(data["tpot"])
@@ -164,7 +164,7 @@ def run_benchmark(ip, port, batch_size, seq_len, max_new_tokens, num_samples):
                 try:
                     payload_mb = 0.0
                     prefill_time = 0.0
-                    saber_time = 0.0
+                    sparc_time = 0.0
                     
                     # 1. INITIALIZE ENVELOPE
                     envelope = pickle.dumps({"method": method, "input_ids": input_ids[:, -1:].cpu(), "max_new_tokens": max_new_tokens})
@@ -181,9 +181,9 @@ def run_benchmark(ip, port, batch_size, seq_len, max_new_tokens, num_samples):
                     for chunk in generator:
                         if chunk["type"] == "metadata" and "stats" in chunk:
                             prefill_time = chunk["stats"]["prefill_time_ms"]
-                            saber_time += chunk["stats"].get("routing_time_ms", 0.0)
+                            sparc_time += chunk["stats"].get("routing_time_ms", 0.0)
                         if chunk["type"] == "done" and "quant_time_ms" in chunk:
-                            saber_time += chunk["quant_time_ms"]
+                            sparc_time += chunk["quant_time_ms"]
                             
                         chunk_bytes = pickle.dumps(chunk)
                         payload_mb += len(chunk_bytes) / 1024 / 1024
@@ -207,7 +207,7 @@ def run_benchmark(ip, port, batch_size, seq_len, max_new_tokens, num_samples):
                         metrics[method]["total"] += 1
                         if is_correct: metrics[method]["correct"] += 1
                         metrics[method]["prefill"].append(prefill_time)
-                        metrics[method]["saber"].append(saber_time)
+                        metrics[method]["sparc"].append(sparc_time)
                         metrics[method]["payload"].append(payload_mb)
                         metrics[method]["ttft"].append(ttft)
                         if tpot > 0: metrics[method]["tpot"].append(tpot)
@@ -216,7 +216,7 @@ def run_benchmark(ip, port, batch_size, seq_len, max_new_tokens, num_samples):
                             "success": True,
                             "is_correct": is_correct,
                             "prefill_time": prefill_time,
-                            "saber_time": saber_time,
+                            "sparc_time": sparc_time,
                             "payload_mb": payload_mb,
                             "ttft": ttft,
                             "tpot": tpot
@@ -255,7 +255,7 @@ def run_benchmark(ip, port, batch_size, seq_len, max_new_tokens, num_samples):
         
         acc = (m["correct"] / total) * 100
         avg_payload = np.mean(m["payload"]) if m["payload"] else 0
-        avg_prefill = np.mean(m["prefill"]) + np.mean(m["saber"]) if m["prefill"] else 0
+        avg_prefill = np.mean(m["prefill"]) + np.mean(m["sparc"]) if m["prefill"] else 0
         
         avg_ttft = np.mean(m["ttft"]) if m["ttft"] else 0
         p95_ttft = np.percentile(m["ttft"], 95) if m["ttft"] else 0
