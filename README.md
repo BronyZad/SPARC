@@ -3,10 +3,10 @@
 Core implementation and scripts for the SPARC paper. 
 
 ## Files
-- `server_*.py` & `sparc_core_transport.py`: main backend and transport logic
+- `server_*.py` & `saber_core_transport.py`: main backend and transport logic
 - `benchmark_*.py`: scripts to run evaluations (LongBench, LEval, etc.)
 - `*_judge.py`: auto-scoring scripts
-- `requirements.txt`: sparc environment dependencies
+- `requirements.txt`: saber environment dependencies
 
 ## How to run
 

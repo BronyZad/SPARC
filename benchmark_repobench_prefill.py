@@ -19,7 +19,7 @@ from difflib import SequenceMatcher
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # 🟢 Clean Separation: Import the Sparc Engine from the transport module
-from sparc_core_transport import SparcDisaggregatedEngine
+from saber_core_transport import SparcDisaggregatedEngine
 
 # 🟢 GLOBAL CONFIGURATION
 MODEL_PATH = "../local_models/Qwen2.5-Coder-7B-Instruct"
@@ -90,7 +90,7 @@ def evaluate_repobench(prediction, ground_truth):
     return em_score, es_score, pred_line
 
 def run_repobench(ip, port, retain_ratio, batch_size, max_new_tokens, num_samples, dataset_path):
-    checkpoint_file = f"sparc_checkpoint_r{retain_ratio}_repobench.jsonl"
+    checkpoint_file = f"saber_checkpoint_r{retain_ratio}_repobench.jsonl"
 
     print(f"🚀 Loading Model on Dual-GPU Prefill Server (RepoBench Mode)...")
     print(f"⚙️ Configuration: [Retain Ratio: {retain_ratio:.2f}] | [Max Context: {MAX_SEQ_LEN}]")

@@ -332,7 +332,7 @@ if __name__ == "__main__":
         '--file_path', 
         nargs='+', 
         required=True, 
-        help="Path(s) to the specific sparc checkpoint file(s) to evaluate."
+        help="Path(s) to the specific saber checkpoint file(s) to evaluate."
     )
     parser.add_argument(
         '--debug', 
