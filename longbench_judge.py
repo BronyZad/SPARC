@@ -1,5 +1,5 @@
 """
-Sparc Universal Evaluation Engine (LongBench Edition)
+Saber Universal Evaluation Engine (LongBench Edition)
 Filename: longbench_judge.py
 Features: Targeted File Selection, Dynamic Rubrics, Threaded Concurrency, Instant Ctrl-C Recovery, File Logging.
 """
@@ -222,7 +222,7 @@ def run_bulk_judge(args):
         print("🐞 Debug mode ON. Detailed LLM traces will be saved to 'judge_debug.log'.")
         if os.path.exists("judge_debug.log"): os.remove("judge_debug.log")
  
-    methods = ["Native-Baseline", "Uniform-INT4", "ablation_inverted", "Sparc-BIC", "SnapKV"]
+    methods = ["Native-Baseline", "Uniform-INT4", "ablation_inverted", "Saber-BIC", "SnapKV"]
     executor = ThreadPoolExecutor(max_workers=MAX_CONCURRENT_WORKERS)
     
     try:
@@ -314,7 +314,7 @@ def run_bulk_judge(args):
         executor.shutdown(wait=False, cancel_futures=True)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Sparc Universal Evaluation Engine")
+    parser = argparse.ArgumentParser(description="Saber Universal Evaluation Engine")
     parser.add_argument(
         '--file_path', 
         nargs='+', 

@@ -42,7 +42,7 @@ def start_sender(ip, port="5555"):
 
     payloads = [
         ("Native-Baseline", NATIVE_MB),
-        ("Sparc-Compressed", SABER_MB)
+        ("Saber-Compressed", SABER_MB)
     ]
 
     for name, size_mb in payloads:

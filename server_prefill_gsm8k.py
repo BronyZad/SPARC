@@ -1,5 +1,5 @@
 """
-Sparc Prefill Server (Master) - Unbiased GSM8K Benchmark Suite
+Saber Prefill Server (Master) - Unbiased GSM8K Benchmark Suite
 """
 import torch
 import zmq
@@ -15,7 +15,7 @@ import re
 import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from sparc_core_transport import SparcDisaggregatedEngine
+from sparc_core_transport import SaberDisaggregatedEngine
 
 MODEL_PATH = "../local_models/Qwen3-4B-Instruct-2507"
 GSM8K_PATH = "../data/benchmarks/gsm8k/test.jsonl"
@@ -80,7 +80,7 @@ def run_benchmark(ip, port, batch_size, seq_len, max_new_tokens, num_samples):
         attn_implementation="sdpa"
     )
     
-    engine = SparcDisaggregatedEngine(model, retain_ratio=0.10, causal_depth=3)
+    engine = SaberDisaggregatedEngine(model, retain_ratio=0.10, causal_depth=3)
     
     context = zmq.Context()
     socket = context.socket(zmq.REQ)
@@ -98,7 +98,7 @@ def run_benchmark(ip, port, batch_size, seq_len, max_new_tokens, num_samples):
     purge(model)
 
     # 🟢 ADDED UNIFORM-INT4 BASELINE
-    methods = ["Native-Baseline", "Uniform-INT4", "Sparc-Q", "Sparc-CQ"]
+    methods = ["Native-Baseline", "Uniform-INT4", "Saber-Q", "Saber-CQ"]
     
     metrics = {m: {"correct": 0, "total": 0, "prefill": [], "sparc": [], "payload": [], "ttft": [], "tpot": []} for m in methods}
     processed_questions = set()

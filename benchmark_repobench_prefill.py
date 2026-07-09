@@ -1,5 +1,5 @@
 """
-Sparc Prefill Server - RepoBench Code Completion
+Saber Prefill Server - RepoBench Code Completion
 Targets: Cross-file next-line prediction.
 Features: On-the-fly Exact Match (EM) & Edit Similarity (ES), Payload/TTFT Systems Profiling, Fail-Fast Crash Handling.
 """
@@ -18,8 +18,8 @@ import numpy as np
 from difflib import SequenceMatcher
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# 🟢 Clean Separation: Import the Sparc Engine from the transport module
-from sparc_core_transport import SparcDisaggregatedEngine
+# 🟢 Clean Separation: Import the Saber Engine from the transport module
+from sparc_core_transport import SaberDisaggregatedEngine
 
 # 🟢 GLOBAL CONFIGURATION
 MODEL_PATH = "../local_models/Qwen2.5-Coder-7B-Instruct"
@@ -106,7 +106,7 @@ def run_repobench(ip, port, retain_ratio, batch_size, max_new_tokens, num_sample
     for i, layer in enumerate(model.model.layers):
         NATIVE_FORWARDS[i] = layer.self_attn.forward
     
-    engine = SparcDisaggregatedEngine(model, retain_ratio, causal_depth=3)
+    engine = SaberDisaggregatedEngine(model, retain_ratio, causal_depth=3)
     context = zmq.Context()
     socket = reset_zmq_socket(context, None, ip, port)
 
@@ -122,7 +122,7 @@ def run_repobench(ip, port, retain_ratio, batch_size, max_new_tokens, num_sample
     with torch.no_grad(): _ = model(input_ids=dummy_ids, attention_mask=dummy_ids)
     purge(model)
 
-    methods = ["Native-Baseline", "Uniform-INT4", "ablation_inverted", "Sparc-BIC", "SnapKV"]
+    methods = ["Native-Baseline", "Uniform-INT4", "ablation_inverted", "Saber-BIC", "SnapKV"]
     
     # Tracking structures for systems profiling metrics
     metrics = {m: {

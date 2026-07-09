@@ -1,5 +1,5 @@
 """
-Sparc Decode Server (Worker) - Instrumented Version
+Saber Decode Server (Worker) - Instrumented Version
 Uses Pipelined Streaming to seamlessly receive and reconstruct the mixed-precision KV cache.
 Features real-time layer unpacking, accurate TPOT/TTFT tracking, and Logit Divergence Profiling.
 """
@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from transformers import AutoModelForCausalLM, AutoTokenizer, LogitsProcessor, LogitsProcessorList
 from transformers.cache_utils import DynamicCache
 
-from sparc_core_transport import SparcDisaggregatedEngine
+from sparc_core_transport import SaberDisaggregatedEngine
 
 MODEL_PATH = "../local_models/Qwen2.5-Coder-7B-Instruct"
 PORT = "5555"
@@ -135,7 +135,7 @@ def start_server():
                         seq_len = k.shape[-2]
                         del k, v
                     else:
-                        k_full, v_full = SparcDisaggregatedEngine.reconstruct_cache_layer(chunk, model.device)
+                        k_full, v_full = SaberDisaggregatedEngine.reconstruct_cache_layer(chunk, model.device)
                         layer.keys, layer.values = k_full, v_full
                         del k_full, v_full
 

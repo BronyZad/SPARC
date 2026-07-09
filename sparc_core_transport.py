@@ -4,14 +4,14 @@ import numpy as np
 import time
 from transformers.cache_utils import DynamicCache
 
-class SparcDisaggregatedEngine:
+class SaberDisaggregatedEngine:
     def __init__(self, model, retain_ratio=0.10, causal_depth=3):
         self.model = model
         self.retain_ratio = retain_ratio
         self.causal_depth = causal_depth
 
     # =========================================================================
-    # INT4 PACKING (For Values, Uniform-INT4, and Sparc-CF Core Channels)
+    # INT4 PACKING (For Values, Uniform-INT4, and Saber-CF Core Channels)
     # =========================================================================
     @staticmethod
     def _gpu_pack_to_int4(tensor_gpu):
@@ -47,7 +47,7 @@ class SparcDisaggregatedEngine:
         return (q_tensor.reshape(shape) * scale.to(device)).to(torch.bfloat16)
 
     # =========================================================================
-    # INT8 PACKING (For Sparc-BIC Keys to prevent Softmax Poisoning)
+    # INT8 PACKING (For Saber-BIC Keys to prevent Softmax Poisoning)
     # =========================================================================
     @staticmethod
     def _gpu_pack_to_int8(tensor_gpu):
@@ -98,11 +98,11 @@ class SparcDisaggregatedEngine:
                 v_quant_type = payload.get('v_quant_type', 'int4') 
                 
                 if k_quant_type == 'int4':
-                    k_bg = SparcDisaggregatedEngine._gpu_unpack_from_int4(
+                    k_bg = SaberDisaggregatedEngine._gpu_unpack_from_int4(
                         payload['k_bg_bytes'], payload['kb_scale'], payload['kb_shape'], device)
                         
                 elif k_quant_type == 'sparc_cf':
-                    k_bg_core = SparcDisaggregatedEngine._gpu_unpack_from_int4(
+                    k_bg_core = SaberDisaggregatedEngine._gpu_unpack_from_int4(
                         payload['k_bg_bytes'], payload['kb_scale'], payload['kb_shape'], device)
                     
                     k_bg_outliers = payload['k_bg_outliers_bf16'].to(device)
@@ -119,15 +119,15 @@ class SparcDisaggregatedEngine:
                     k_bg.scatter_(dim=3, index=core_idx_exp, src=k_bg_core)
                     
                 else:
-                    k_bg = SparcDisaggregatedEngine._gpu_unpack_from_int8(
+                    k_bg = SaberDisaggregatedEngine._gpu_unpack_from_int8(
                         payload['k_bg_bytes'], payload['kb_scale'], payload['kb_shape'], device)
 
                 # Dynamic unpacking for precision ablation
                 if v_quant_type == 'int8':
-                    v_bg = SparcDisaggregatedEngine._gpu_unpack_from_int8(
+                    v_bg = SaberDisaggregatedEngine._gpu_unpack_from_int8(
                         payload['v_bg_bytes'], payload['vb_scale'], payload['vb_shape'], device)
                 else:
-                    v_bg = SparcDisaggregatedEngine._gpu_unpack_from_int4(
+                    v_bg = SaberDisaggregatedEngine._gpu_unpack_from_int4(
                         payload['v_bg_bytes'], payload['vb_scale'], payload['vb_shape'], device)
                 
                 k_full[:, :, inv_mask, :] = k_bg

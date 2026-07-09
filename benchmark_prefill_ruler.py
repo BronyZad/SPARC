@@ -1,5 +1,5 @@
 """
-Sparc Prefill Server - RULER Benchmark (Needle In A Haystack)
+Saber Prefill Server - RULER Benchmark (Needle In A Haystack)
 Targets: Extreme Context Retrieval & Entropy Routing Validation.
 """
 import torch
@@ -15,8 +15,8 @@ import sys
 import numpy as np
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# Import the Sparc Engine
-from sparc_core_transport import SparcDisaggregatedEngine
+# Import the Saber Engine
+from sparc_core_transport import SaberDisaggregatedEngine
 
 # 🟢 GLOBAL CONFIGURATION
 MODEL_PATH = "../local_models/Qwen3-4B-Instruct-2507"
@@ -83,7 +83,7 @@ def run_ruler(ip, port, retain_ratio, batch_size, max_new_tokens, num_samples, d
     for i, layer in enumerate(model.model.layers):
         NATIVE_FORWARDS[i] = layer.self_attn.forward
     
-    engine = SparcDisaggregatedEngine(model, retain_ratio, causal_depth=3)
+    engine = SaberDisaggregatedEngine(model, retain_ratio, causal_depth=3)
     context = zmq.Context()
     socket = reset_zmq_socket(context, None, ip, port)
 
@@ -99,7 +99,7 @@ def run_ruler(ip, port, retain_ratio, batch_size, max_new_tokens, num_samples, d
     with torch.no_grad(): _ = model(input_ids=dummy_ids, attention_mask=dummy_ids)
     purge(model)
 
-    methods = ["Native-Baseline", "Uniform-INT4", "Sparc-Q", "Sparc-CQ"]
+    methods = ["Native-Baseline", "Uniform-INT4", "Saber-Q", "Saber-CQ"]
     metrics = {m: {"total": 0, "em": []} for m in methods}
     
     processed_ids = set()
